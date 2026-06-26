@@ -13,6 +13,7 @@ router.use('/coupons', require('./coupon.routes'));
 router.use('/payments', require('./payment.routes'));
 router.use('/banners', require('./banner.routes'));
 router.use('/admin', require('./admin.routes'));
+router.use('/contact', require('./contact.routes'));
 
 // Health check
 router.get('/health', (req, res) => {

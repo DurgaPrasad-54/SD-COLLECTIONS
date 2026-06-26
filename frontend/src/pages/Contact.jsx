@@ -36,9 +36,9 @@ function Contact() {
           {/* Contact Info */}
           <div className="space-y-6">
             {[
-              { icon: FiMapPin, title: 'Address', text: '123 Fashion Street, Bandra West, Mumbai – 400050' },
-              { icon: FiPhone, title: 'Phone', text: '+91 98765 43210' },
-              { icon: FiMail, title: 'Email', text: 'support@sdclothing.com' },
+              { icon: FiMapPin, title: 'Address', text: '3-530 Rangarao Colony near hanuman junction dwarapudi andhra pradesh' },
+              { icon: FiPhone, title: 'Phone', text: '8790237365' },
+              { icon: FiMail, title: 'Email', text: 'prasad8790237@gmail.com' },
             ].map(({ icon: Icon, title, text }) => (
               <div key={title} className="flex items-start space-x-4">
                 <div className="p-3 bg-blue-50 dark:bg-blue-900/30 rounded-xl text-blue-600">
@@ -50,8 +50,16 @@ function Contact() {
                 </div>
               </div>
             ))}
-            <div className="mt-6 rounded-xl overflow-hidden h-52 bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-400">
-              <p className="text-sm">Map Placeholder</p>
+            <div className="mt-6 rounded-xl overflow-hidden h-52 bg-gray-200 dark:bg-gray-700">
+              <iframe
+                title="Location Map"
+                src="https://maps.google.com/maps?q=Dwarapudi,%20Andhra%20Pradesh&t=&z=14&ie=UTF8&iwloc=&output=embed"
+                width="100%"
+                height="100%"
+                style={{ border: 0 }}
+                allowFullScreen=""
+                loading="lazy"
+              ></iframe>
             </div>
           </div>
 

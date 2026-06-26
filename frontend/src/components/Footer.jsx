@@ -56,15 +56,15 @@ function Footer() {
             <ul className="space-y-3 text-sm">
               <li className="flex items-start space-x-2">
                 <FiMapPin className="mt-0.5 flex-shrink-0 text-blue-400" />
-                <span>123 Fashion Street, Mumbai, India</span>
+                <span className="max-w-[200px]">3-530 Rangarao Colony near hanuman junction dwarapudi andhra pradesh</span>
               </li>
               <li className="flex items-center space-x-2">
                 <FiPhone className="text-blue-400" />
-                <span>+91 98765 43210</span>
+                <span>8790237365</span>
               </li>
               <li className="flex items-center space-x-2">
                 <FiMail className="text-blue-400" />
-                <span>support@sdclothing.com</span>
+                <span>prasad8790237@gmail.com</span>
               </li>
             </ul>
           </div>
