@@ -25,14 +25,22 @@ function CouponManagement() {
     setValue('code', c.code);
     setValue('discountType', c.discountType || 'percentage');
     setValue('discountValue', c.discountValue);
-    setValue('minOrderAmount', c.minOrderAmount);
-    setValue('expiryDate', c.expiryDate?.split('T')[0]);
+    setValue('minOrderAmount', c.minOrderAmount || '');
+    setValue('maxDiscountAmount', c.maxDiscountAmount || '');
+    setValue('usageLimit', c.usageLimit || '');
+    setValue('expiryDate', c.expiryDate?.split('T')[0] || '');
     setValue('active', c.active);
     setShowModal(true);
   };
 
   const onSubmit = async (data) => {
-    const payload = { ...data, discountValue: Number(data.discountValue), minOrderAmount: Number(data.minOrderAmount) };
+    const payload = { 
+      ...data, 
+      discountValue: Number(data.discountValue), 
+      minOrderAmount: Number(data.minOrderAmount) || 0,
+      maxDiscountAmount: data.maxDiscountAmount ? Number(data.maxDiscountAmount) : null,
+      usageLimit: data.usageLimit ? Number(data.usageLimit) : null
+    };
     const result = editCoupon
       ? await dispatch(updateCoupon({ id: editCoupon._id, payload }))
       : await dispatch(createCoupon(payload));
@@ -119,6 +127,16 @@ function CouponManagement() {
             <div>
               <label className="text-xs font-medium text-gray-600 dark:text-gray-300 mb-1 block">Min Order (₹)</label>
               <input {...register('minOrderAmount')} type="number" className={inputClass(false)} />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-gray-600 dark:text-gray-300 mb-1 block">Max Discount (₹)</label>
+              <input {...register('maxDiscountAmount')} type="number" placeholder="Optional" className={inputClass(false)} />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-medium text-gray-600 dark:text-gray-300 mb-1 block">Usage Limit</label>
+              <input {...register('usageLimit')} type="number" placeholder="Optional" className={inputClass(false)} />
             </div>
             <div>
               <label className="text-xs font-medium text-gray-600 dark:text-gray-300 mb-1 block">Expiry Date *</label>

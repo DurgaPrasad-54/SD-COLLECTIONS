@@ -9,11 +9,7 @@ import ProductGrid from '../components/ProductGrid';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { FiChevronRight, FiShoppingBag, FiTruck, FiRefreshCw, FiShield } from 'react-icons/fi';
 
-const HERO_SLIDES = [
-  { id: 1, title: 'Summer Collection 2024', subtitle: 'Discover the latest trends in fashion', cta: 'Shop Now', bg: 'from-blue-600 to-purple-700' },
-  { id: 2, title: 'New Arrivals Are Here', subtitle: 'Exclusive styles just landed', cta: 'Explore', bg: 'from-rose-500 to-orange-500' },
-  { id: 3, title: 'Up to 50% Off', subtitle: 'Limited time sale on premium brands', cta: 'Grab Deal', bg: 'from-emerald-500 to-teal-600' },
-];
+import api from '../services/api';
 
 const FEATURES = [
   { icon: FiTruck, label: 'Free Shipping', desc: 'On orders above ₹499' },
@@ -32,19 +28,26 @@ function Home() {
   const dispatch = useDispatch();
   const { list, loading } = useSelector((state) => state.product);
   const { list: categories } = useSelector((state) => state.category);
+  const [banners, setBanners] = useState([]);
   const [slide, setSlide] = useState(0);
 
   useEffect(() => {
     dispatch(fetchProducts({ limit: 12 }));
     dispatch(fetchCategories());
+    const fetchBanners = async () => {
+      try {
+        const { data } = await api.get('/banners');
+        setBanners((data.data || []).filter(b => b.active).sort((a,b) => a.order - b.order));
+      } catch (err) { console.error(err); }
+    };
+    fetchBanners();
   }, [dispatch]);
 
   useEffect(() => {
-    const timer = setInterval(() => setSlide((s) => (s + 1) % HERO_SLIDES.length), 5000);
+    if (banners.length <= 1) return;
+    const timer = setInterval(() => setSlide((s) => (s + 1) % banners.length), 5000);
     return () => clearInterval(timer);
-  }, []);
-
-  const current = HERO_SLIDES[slide];
+  }, [banners.length]);
 
   return (
     <>
@@ -54,22 +57,37 @@ function Home() {
       </Helmet>
 
       {/* Hero Banner */}
-      <section className={`-mx-4 -mt-6 bg-gradient-to-br ${current.bg} text-white py-24 px-6 text-center relative overflow-hidden mb-10`}>
-        <motion.div key={slide} initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
-          <p className="text-sm uppercase tracking-widest mb-2 opacity-80">SD COLLECTIONS</p>
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold mb-4">{current.title}</h1>
-          <p className="text-lg sm:text-xl opacity-90 mb-8">{current.subtitle}</p>
-          <Link to="/shop" className="inline-block bg-white text-blue-700 font-bold px-8 py-3 rounded-full hover:bg-gray-100 transition-colors shadow-lg">
-            {current.cta} <FiChevronRight className="inline" />
-          </Link>
-        </motion.div>
-        {/* Slide indicators */}
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-2">
-          {HERO_SLIDES.map((_, i) => (
-            <button key={i} onClick={() => setSlide(i)} className={`w-2 h-2 rounded-full transition-colors ${i === slide ? 'bg-white' : 'bg-white/40'}`} aria-label={`Slide ${i + 1}`} />
+      {banners.length > 0 && (
+        <section className="relative -mx-4 -mt-6 mb-10 overflow-hidden h-[400px] sm:h-[500px]">
+          {banners.map((b, i) => (
+            <motion.div
+              key={b._id}
+              className="absolute inset-0"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: i === slide ? 1 : 0 }}
+              transition={{ duration: 0.8 }}
+              style={{ zIndex: i === slide ? 10 : 0, pointerEvents: i === slide ? 'auto' : 'none' }}
+            >
+              {b.redirectUrl ? (
+                <Link to={b.redirectUrl} className="block w-full h-full cursor-pointer">
+                  <img src={b.image?.url || b.image} alt={b.title} className="w-full h-full object-cover" />
+                </Link>
+              ) : (
+                <img src={b.image?.url || b.image} alt={b.title} className="w-full h-full object-cover" />
+              )}
+            </motion.div>
           ))}
-        </div>
-      </section>
+          
+          {/* Slide indicators */}
+          {banners.length > 1 && (
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-2 z-20">
+              {banners.map((_, i) => (
+                <button key={i} onClick={() => setSlide(i)} className={`w-2 h-2 rounded-full transition-colors ${i === slide ? 'bg-white' : 'bg-white/40'}`} aria-label={`Slide ${i + 1}`} />
+              ))}
+            </div>
+          )}
+        </section>
+      )}
 
       {/* Feature Badges */}
       <section className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">

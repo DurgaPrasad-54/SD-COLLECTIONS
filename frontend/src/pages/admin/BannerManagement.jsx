@@ -14,6 +14,7 @@ function BannerManagement() {
   const [showModal, setShowModal] = useState(false);
   const [editBanner, setEditBanner] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
+  const [imageFile, setImageFile] = useState(null);
   const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm();
 
   const fetchBanners = async () => {
@@ -23,22 +24,39 @@ function BannerManagement() {
 
   useEffect(() => { fetchBanners(); }, []);
 
-  const openAdd = () => { setEditBanner(null); reset(); setShowModal(true); };
+  const openAdd = () => { setEditBanner(null); reset(); setImageFile(null); setShowModal(true); };
   const openEdit = (b) => {
     setEditBanner(b);
     setValue('title', b.title);
-    setValue('subtitle', b.subtitle);
-    setValue('link', b.link);
-    setValue('isActive', b.isActive);
+    setValue('redirectUrl', b.redirectUrl || '');
+    setValue('order', b.order || 0);
+    setValue('active', b.active);
+    setImageFile(null);
     setShowModal(true);
   };
 
   const onSubmit = async (data) => {
     try {
-      if (editBanner) { const r = await api.put(`/banners/${editBanner._id}`, data); setBanners((prev) => prev.map((b) => b._id === editBanner._id ? r.data.data : b)); toast.success('Banner updated!'); }
-      else { const r = await api.post('/banners', data); setBanners((prev) => [...prev, r.data.data]); toast.success('Banner created!'); }
+      const formData = new FormData();
+      formData.append('title', data.title);
+      if (data.redirectUrl) formData.append('redirectUrl', data.redirectUrl);
+      if (data.order) formData.append('order', Number(data.order));
+      formData.append('active', data.active);
+      if (imageFile) formData.append('image', imageFile);
+
+      if (editBanner) { 
+        const r = await api.put(`/banners/${editBanner._id}`, formData, { headers: { 'Content-Type': 'multipart/form-data' } }); 
+        setBanners((prev) => prev.map((b) => b._id === editBanner._id ? r.data.data : b)); 
+        toast.success('Banner updated!'); 
+      }
+      else { 
+        if (!imageFile) return toast.error('Please upload an image');
+        const r = await api.post('/banners', formData, { headers: { 'Content-Type': 'multipart/form-data' } }); 
+        setBanners((prev) => [...prev, r.data.data]); 
+        toast.success('Banner created!'); 
+      }
       setShowModal(false);
-    } catch (_) { }
+    } catch (err) { toast.error(err.response?.data?.message || 'Error saving banner'); }
   };
 
   const handleDelete = async () => {
@@ -75,8 +93,8 @@ function BannerManagement() {
               <div className="p-4 flex items-center justify-between">
                 <div>
                   <p className="font-semibold text-sm text-gray-800 dark:text-gray-100">{b.title}</p>
-                  <span className={`text-xs ${b.isActive ? 'text-green-600' : 'text-red-500'}`}>
-                    {b.isActive ? 'Active' : 'Inactive'}
+                  <span className={`text-xs ${b.active ? 'text-green-600' : 'text-red-500'}`}>
+                    {b.active ? 'Active' : 'Inactive'}
                   </span>
                 </div>
                 <div className="flex items-center space-x-2">
@@ -97,15 +115,19 @@ function BannerManagement() {
             <input {...register('title', { required: true })} className={inputClass(errors.title)} />
           </div>
           <div>
-            <label className="text-xs font-medium text-gray-600 dark:text-gray-300 mb-1 block">Subtitle</label>
-            <input {...register('subtitle')} className={inputClass(false)} />
+            <label className="text-xs font-medium text-gray-600 dark:text-gray-300 mb-1 block">Banner Image {editBanner ? '' : '*'}</label>
+            <input type="file" accept="image/*" onChange={(e) => setImageFile(e.target.files[0])} className={inputClass(false)} />
           </div>
           <div>
-            <label className="text-xs font-medium text-gray-600 dark:text-gray-300 mb-1 block">Link URL</label>
-            <input {...register('link')} placeholder="/shop" className={inputClass(false)} />
+            <label className="text-xs font-medium text-gray-600 dark:text-gray-300 mb-1 block">Redirect URL</label>
+            <input {...register('redirectUrl')} placeholder="/shop?category=XYZ" className={inputClass(false)} />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-600 dark:text-gray-300 mb-1 block">Order / Sequence</label>
+            <input {...register('order')} type="number" defaultValue={0} className={inputClass(false)} />
           </div>
           <div className="flex items-center space-x-2">
-            <input {...register('isActive')} type="checkbox" id="bActive" defaultChecked className="accent-blue-600" />
+            <input {...register('active')} type="checkbox" id="bActive" className="accent-blue-600" />
             <label htmlFor="bActive" className="text-sm text-gray-700 dark:text-gray-200">Active</label>
           </div>
           <div className="flex justify-end space-x-3">
