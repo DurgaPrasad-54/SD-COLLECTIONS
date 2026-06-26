@@ -17,16 +17,18 @@ function Cart() {
 
   const subtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
   const shipping = subtotal >= 500 ? 0 : 40;
-  const discountAmount = appliedCoupon ? (discount / 100) * subtotal : 0;
+  const discountAmount = appliedCoupon ? discount : 0;
   const total = subtotal + shipping - discountAmount;
 
   const handleQty = (key, qty) => {
     if (qty < 1) return;
     dispatch(updateQuantity({ key, quantity: qty }));
+    if (appliedCoupon) dispatch(clearAppliedCoupon());
   };
 
   const handleRemove = (key) => {
     dispatch(removeFromCart(key));
+    if (appliedCoupon) dispatch(clearAppliedCoupon());
     toast.success('Item removed');
   };
 
@@ -102,7 +104,7 @@ function Cart() {
             {appliedCoupon ? (
               <div className="flex items-center justify-between bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg px-3 py-2">
                 <span className="text-green-700 dark:text-green-400 text-sm font-medium flex items-center">
-                  <FiTag className="mr-1" /> {appliedCoupon.code} ({discount}% off)
+                  <FiTag className="mr-1" /> {appliedCoupon.code} ({appliedCoupon.discountType === 'percentage' ? `${appliedCoupon.discountValue}%` : `₹${appliedCoupon.discountValue}`} off)
                 </span>
                 <button onClick={handleClearCoupon} className="text-red-500 text-xs hover:underline">Remove</button>
               </div>

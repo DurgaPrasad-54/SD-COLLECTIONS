@@ -23,15 +23,16 @@ function CouponManagement() {
   const openEdit = (c) => {
     setEditCoupon(c);
     setValue('code', c.code);
-    setValue('discount', c.discount);
+    setValue('discountType', c.discountType || 'percentage');
+    setValue('discountValue', c.discountValue);
     setValue('minOrderAmount', c.minOrderAmount);
-    setValue('expiresAt', c.expiresAt?.split('T')[0]);
-    setValue('isActive', c.isActive);
+    setValue('expiryDate', c.expiryDate?.split('T')[0]);
+    setValue('active', c.active);
     setShowModal(true);
   };
 
   const onSubmit = async (data) => {
-    const payload = { ...data, discount: Number(data.discount), minOrderAmount: Number(data.minOrderAmount) };
+    const payload = { ...data, discountValue: Number(data.discountValue), minOrderAmount: Number(data.minOrderAmount) };
     const result = editCoupon
       ? await dispatch(updateCoupon({ id: editCoupon._id, payload }))
       : await dispatch(createCoupon(payload));
@@ -73,12 +74,12 @@ function CouponManagement() {
               {list.map((coupon) => (
                 <tr key={coupon._id} className="border-b border-gray-50 dark:border-gray-700">
                   <td className="px-4 py-3 font-mono font-semibold text-blue-600">{coupon.code}</td>
-                  <td className="px-4 py-3 font-semibold">{coupon.discount}%</td>
+                  <td className="px-4 py-3 font-semibold">{coupon.discountType === 'percentage' ? `${coupon.discountValue}%` : `₹${coupon.discountValue}`}</td>
                   <td className="px-4 py-3">₹{coupon.minOrderAmount?.toLocaleString()}</td>
-                  <td className="px-4 py-3 text-gray-400 text-xs">{coupon.expiresAt ? new Date(coupon.expiresAt).toLocaleDateString() : '—'}</td>
+                  <td className="px-4 py-3 text-gray-400 text-xs">{coupon.expiryDate ? new Date(coupon.expiryDate).toLocaleDateString() : '—'}</td>
                   <td className="px-4 py-3">
-                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${coupon.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                      {coupon.isActive ? 'Active' : 'Inactive'}
+                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${coupon.active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                      {coupon.active ? 'Active' : 'Inactive'}
                     </span>
                   </td>
                   <td className="px-4 py-3">
@@ -103,21 +104,30 @@ function CouponManagement() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-xs font-medium text-gray-600 dark:text-gray-300 mb-1 block">Discount (%) *</label>
-              <input {...register('discount', { required: true, min: 1, max: 100 })} type="number" className={inputClass(errors.discount)} />
+              <label className="text-xs font-medium text-gray-600 dark:text-gray-300 mb-1 block">Discount Type *</label>
+              <select {...register('discountType', { required: true })} className={inputClass(errors.discountType)}>
+                <option value="percentage">Percentage (%)</option>
+                <option value="fixed">Fixed Amount (₹)</option>
+              </select>
             </div>
+            <div>
+              <label className="text-xs font-medium text-gray-600 dark:text-gray-300 mb-1 block">Discount Value *</label>
+              <input {...register('discountValue', { required: true, min: 1 })} type="number" className={inputClass(errors.discountValue)} />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-xs font-medium text-gray-600 dark:text-gray-300 mb-1 block">Min Order (₹)</label>
               <input {...register('minOrderAmount')} type="number" className={inputClass(false)} />
             </div>
-          </div>
-          <div>
-            <label className="text-xs font-medium text-gray-600 dark:text-gray-300 mb-1 block">Expiry Date</label>
-            <input {...register('expiresAt')} type="date" className={inputClass(false)} />
+            <div>
+              <label className="text-xs font-medium text-gray-600 dark:text-gray-300 mb-1 block">Expiry Date *</label>
+              <input {...register('expiryDate', { required: true })} type="date" className={inputClass(errors.expiryDate)} />
+            </div>
           </div>
           <div className="flex items-center space-x-2">
-            <input {...register('isActive')} type="checkbox" id="isActive" defaultChecked className="accent-blue-600" />
-            <label htmlFor="isActive" className="text-sm text-gray-700 dark:text-gray-200">Active</label>
+            <input {...register('active')} type="checkbox" id="active" className="accent-blue-600" />
+            <label htmlFor="active" className="text-sm text-gray-700 dark:text-gray-200">Active</label>
           </div>
           <div className="flex justify-end space-x-3">
             <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 border rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-700">Cancel</button>
