@@ -74,8 +74,20 @@ function ProductDetails() {
   };
 
   const handleBuyNow = () => {
-    handleAddCart();
-    navigate('/checkout');
+    if (!size && product?.sizes?.length > 0) return toast.error('Please select a size');
+    if (!color && product?.colors?.length > 0) return toast.error('Please select a color');
+
+    const buyNowItem = {
+      productId: product._id,
+      name: product.name,
+      price: product.price,
+      image: product.images?.[0]?.url || '',
+      quantity: qty,
+      size,
+      color,
+    };
+
+    navigate('/checkout', { state: { buyNowItem } });
   };
 
   const handleWishlist = () => {

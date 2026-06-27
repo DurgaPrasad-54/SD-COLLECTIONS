@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { Helmet } from 'react-helmet-async';
 import { placeOrder } from '../store/orderSlice';
@@ -32,7 +32,10 @@ const loadRazorpayScript = () => {
 function Checkout() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { items } = useSelector((state) => state.cart);
+  const location = useLocation();
+  const { items: cartItems } = useSelector((state) => state.cart);
+  const buyNowItem = location.state?.buyNowItem;
+  const items = buyNowItem ? [buyNowItem] : cartItems;
   const { appliedCoupon, discount } = useSelector((state) => state.coupon);
   const { loading } = useSelector((state) => state.order);
   const { user } = useSelector((state) => state.auth);
@@ -62,6 +65,13 @@ function Checkout() {
     }
   }, [user, reset]);
 
+  useEffect(() => {
+    if (items.length === 0 && !loading) {
+      toast.error('Your cart is empty. Please add items before checking out.');
+      navigate('/cart');
+    }
+  }, [items, navigate, loading]);
+
   const subtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
   const shipping = subtotal >= 500 ? 0 : 40;
   const discountAmount = appliedCoupon ? (discount / 100) * subtotal : 0;
@@ -90,6 +100,7 @@ function Checkout() {
       },
       paymentMethod: paymentMethod === 'Online' ? 'Razorpay' : 'COD',
       couponCode: appliedCoupon?.code || '',
+      isBuyNow: !!buyNowItem,
     };
 
     const result = await dispatch(placeOrder(orderPayload));
@@ -108,40 +119,41 @@ function Checkout() {
           const { data: orderRes } = await api.post('/payments/create-order', { orderId: order._id });
           const { keyId, razorpayOrderId, amount, currency } = orderRes.data;
 
-          const options = {
-            key: keyId,
-            amount: amount,
-            currency: currency,
-            name: 'SD COLLECTIONS',
-            description: `Payment for Order #${order._id.slice(-8).toUpperCase()}`,
-            order_id: razorpayOrderId,
-            handler: async (response) => {
-              try {
-                // Verify signature on backend
-                const verifyPayload = {
-                  razorpay_order_id: response.razorpay_order_id,
-                  razorpay_payment_id: response.razorpay_payment_id,
-                  razorpay_signature: response.razorpay_signature,
-                };
-                const verifyRes = await api.post('/payments/verify', verifyPayload);
-                if (verifyRes.data.success) {
-                  dispatch(clearCart());
-                  dispatch(clearAppliedCoupon());
-                  toast.success('Payment successful!');
-                  navigate('/order-success', { state: { order: verifyRes.data.data } });
-                } else {
-                  toast.error('Payment verification failed.');
-                }
-              } catch (err) {
-                toast.error('Error verifying payment.');
-              }
-            },
-            prefill: {
+            const prefill = {
               name: addressData.name,
-              contact: addressData.phone,
-              email: user?.email || '',
-            },
-            theme: {
+              contact: addressData.phone.replace(/\D/g, '').slice(-10), // Ensure it's a 10 digit number
+            };
+
+            const options = {
+              key: keyId,
+              amount: amount,
+              currency: currency,
+              name: 'SD COLLECTIONS',
+              description: `Payment for Order #${order._id.slice(-8).toUpperCase()}`,
+              order_id: razorpayOrderId,
+              handler: async (response) => {
+                try {
+                  // Verify signature on backend
+                  const verifyPayload = {
+                    razorpay_order_id: response.razorpay_order_id,
+                    razorpay_payment_id: response.razorpay_payment_id,
+                    razorpay_signature: response.razorpay_signature,
+                  };
+                  const verifyRes = await api.post('/payments/verify', verifyPayload);
+                  if (verifyRes.data.success) {
+                    if (!buyNowItem) dispatch(clearCart());
+                    dispatch(clearAppliedCoupon());
+                    toast.success('Payment successful!');
+                    navigate('/order-success', { state: { order: verifyRes.data.data } });
+                  } else {
+                    toast.error('Payment verification failed.');
+                  }
+                } catch (err) {
+                  toast.error('Error verifying payment.');
+                }
+              },
+              prefill,
+              theme: {
               color: '#2563EB',
             },
             modal: {
@@ -152,18 +164,27 @@ function Checkout() {
             }
           };
 
+          console.log('[Razorpay] Initializing with options:', options);
           const rzp = new window.Razorpay(options);
+          
+          rzp.on('payment.failed', function (response){
+            console.error('[Razorpay] Payment failed event:', response.error);
+            toast.error(response.error?.description || 'Payment failed! Please try another method.');
+          });
+
           rzp.open();
         } catch (err) {
-          console.error(err);
+          console.error('[Razorpay] Setup Error:', err);
           toast.error(err.response?.data?.message || 'Error processing online payment.');
         }
       } else {
         // COD
-        dispatch(clearCart());
+        if (!buyNowItem) dispatch(clearCart());
         dispatch(clearAppliedCoupon());
         navigate('/order-success', { state: { order } });
       }
+    } else {
+      toast.error(result.payload?.message || 'Failed to place order. Please try again.');
     }
   };
 

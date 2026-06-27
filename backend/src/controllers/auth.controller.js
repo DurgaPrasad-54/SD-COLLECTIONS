@@ -335,6 +335,13 @@ const updateProfile = async (req, res, next) => {
  * @access  Private
  */
 const addAddress = async (req, res) => {
+  // Temporary migration to fix MongoServerError Code 28
+  // First remove the corrupted field entirely
+  await User.collection.updateOne(
+    { _id: new (require('mongoose').Types.ObjectId)(req.user.id), profileImage: "" },
+    { $unset: { profileImage: "" } }
+  );
+
   const user = await User.findById(req.user.id);
 
   // If this is set as default, unset other defaults
@@ -358,6 +365,12 @@ const addAddress = async (req, res) => {
  * @access  Private
  */
 const updateAddress = async (req, res, next) => {
+  // Temporary migration to fix MongoServerError Code 28
+  await User.collection.updateOne(
+    { _id: new (require('mongoose').Types.ObjectId)(req.user.id), profileImage: "" },
+    { $unset: { profileImage: "" } }
+  );
+
   const user = await User.findById(req.user.id);
   const address = user.addresses.id(req.params.addressId);
 
@@ -386,6 +399,12 @@ const updateAddress = async (req, res, next) => {
  * @access  Private
  */
 const deleteAddress = async (req, res, next) => {
+  // Temporary migration to fix MongoServerError Code 28
+  await User.collection.updateOne(
+    { _id: new (require('mongoose').Types.ObjectId)(req.user.id), profileImage: "" },
+    { $unset: { profileImage: "" } }
+  );
+
   const user = await User.findById(req.user.id);
   const address = user.addresses.id(req.params.addressId);
 

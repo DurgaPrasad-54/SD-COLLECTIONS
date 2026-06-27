@@ -12,7 +12,7 @@ const { sendOrderConfirmation } = require('../services/email.service');
  * @access  Private
  */
 const placeOrder = async (req, res, next) => {
-  const { items, shippingAddress, paymentMethod, couponCode } = req.body;
+  const { items, shippingAddress, paymentMethod, couponCode, isBuyNow } = req.body;
 
   if (!items || items.length === 0) {
     return next(new AppError('No items in order.', 400));
@@ -99,21 +99,24 @@ const placeOrder = async (req, res, next) => {
     totalAmount,
     paymentStatus: paymentMethod === 'COD' ? 'Pending' : 'Pending',
     orderStatus: 'Pending',
+    isBuyNow: isBuyNow || false,
   });
 
-  // Reduce stock
-  for (const item of orderItems) {
-    await Product.findByIdAndUpdate(item.product, {
-      $inc: { stock: -item.quantity },
-    });
+  // Only reduce stock and clear cart immediately for COD.
+  // For online payments, this happens after successful payment verification.
+  if (paymentMethod === 'COD') {
+    for (const item of orderItems) {
+      await Product.findByIdAndUpdate(item.product, {
+        $inc: { stock: -item.quantity },
+      });
+    }
+    if (!isBuyNow) {
+      await Cart.findOneAndUpdate({ user: req.user.id }, { items: [], totalPrice: 0 });
+    }
+    // Send order confirmation email (non-blocking) for COD
+    const user = req.user;
+    sendOrderConfirmation(order, user);
   }
-
-  // Clear user's cart
-  await Cart.findOneAndUpdate({ user: req.user.id }, { items: [], totalPrice: 0 });
-
-  // Send order confirmation email (non-blocking)
-  const user = req.user;
-  sendOrderConfirmation(order, user);
 
   res.status(201).json({
     success: true,
